@@ -1,0 +1,26 @@
+# Pillow == 8.4.0
+# torchpack
+# numpy
+# timm
+# tqdm
+# pandas
+# plyfile
+# setuptools == 59.5.0
+# # PyTurboJPEG
+numpy == 1.22.4
+numba == 0.53.0
+pretty_errors
+einops
+wandb
+loguru
+colorama
+
+# attention:
+# jupyter-packaging 0.12.3 requires setuptools>=60.2.0
+# But when setuptools > 59.5.0, will cause 'tensorboard' error in torch/utils/tensorboard/__init__.py
+# AttributeError: module 'distutils' has no attribute 'version'
+# Solution:
+# open torch/utils/tensorboard/__init__.py
+# change 'LooseVersion = distutils.version.LooseVersion' to 'from distutils.version import LooseVersion'
+
+# flash-attn == 0.2.7 # CMT
