@@ -1,6 +1,13 @@
 # FastBEV
 
 ## Abstract
+base: https://github.com/Sense-GVT/Fast-BEV ,
+
+delete time sequence
+
+update mm releated ,
+
+add onnx export for tensorrt
 
 # 用法
 
