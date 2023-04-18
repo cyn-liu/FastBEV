@@ -1,17 +1,17 @@
 # Step-by-step installation instructions
 
-**a. Clone MSBEVFusion.**
+**a. Clone FastBEV.**
 
 ```
-git clone https://github.com/xxxxxxxxxx/MSBEVFusion.git
-cd MSBEVFusion
+git clone https://github.com/thfylsty/FastBEV
+cd FastBEV
 ```
 
 **b. Create a conda virtual environment and activate it.**
 
 ```shell
-conda create -n MSBEVFusion python=3.8 -y
-conda activate MSBEVFusion
+conda create -n FastBEV python=3.8 -y
+conda activate FastBEV
 ```
 
 **c. Install PyTorch and torchvision following the [official instructions](https://pytorch.org/).**

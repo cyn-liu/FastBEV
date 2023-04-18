@@ -1,4 +1,4 @@
-# MSBEVFusion
+# FastBEV
 
 ## Abstract
 
