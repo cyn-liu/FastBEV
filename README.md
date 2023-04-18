@@ -12,6 +12,8 @@ add onnx export for tensorrt
 https://github.com/thfylsty/FastBEV-TensorRT
 
 
+read [install](docs/install.md) first for environment
+
 # 用法
 
 ### 测试环境一
