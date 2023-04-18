@@ -34,7 +34,7 @@ resume = False
 experiment_name = None  #  If not specified, timestamp will be used as ``experiment_name``
 work_dir_postfix_name = ""
 
-data_root = '/home/fuyu/zhangbin/datasets/ms-mini/'
+data_root = '/home/xxxx/datasets/ms-mini/'
 
 work_dir_postfix = "_" + work_dir_postfix_name + '_' + __date()
 
