@@ -5,7 +5,7 @@ base: https://github.com/Sense-GVT/Fast-BEV
 
 delete time sequence . you can add time seq in forward_3d refer to author's code.
 
-update mm releated ,
+update mmcv mmdet mmdet3d ....  releted ,
 
 add onnx export for tensorrt
 
