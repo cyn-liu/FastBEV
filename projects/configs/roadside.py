@@ -187,17 +187,17 @@ ida_aug_conf = dict(
             saturation_range= (0.5, 1.5),
             hue_delta=0),
     # train-aug
-    final_size=(320, 800),
+    final_size=img_input_final_dim,
     resize_range=(-0.06, 0.11),
     crop_range=(-0.05, 0.05),
-    rot_range=(-0.78539816 * 0.5, 0.78539816 * 0.5),
+    rot_range=(-3.14159264 / 18, 3.14159264 / 18),
     rand_flip=True,
     flip_ratio=0.5,
     # top, right, bottom, left
     pad=(0, 0, 0, 0),
     pad_color=(0, 0, 0),
     # test-aug
-    test_final_size=(320, 800),
+    test_final_size=img_input_final_dim,
     test_resize=0.0,
     test_rotate=0.0,
     test_flip=False,
@@ -205,14 +205,14 @@ ida_aug_conf = dict(
 
 ida_aug_conf_without = dict(
     # train-aug
-    final_dim=(320, 800),
+    final_size=img_input_final_dim,
     # test-aug
-    test_final_dim=(320, 800)
+    test_final_size=img_input_final_dim
 )
 
 pts_aug_conf = dict(
     # train-aug
-    rot_range=(-0.78539816, 0.78539816),  # (-pi/4, pi/4)
+    rot_range=(-3.14159264 / 4, 3.14159264 / 4),  # (-pi/4, pi/4)
     scale_ratio_range=(0.95, 1.05),
     translation_std=(0, 0, 0),
     rand_flip=True,
@@ -230,15 +230,15 @@ pts_aug_conf_without = dict()
 train_pipeline = [
     dict(type='LoadMultiViewImageFromFiles', num_views=3),
     dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
-    # dict(type='MultiViewWrapper',
-    #      transforms=[
-    #          dict(type='CustomPhotoMetricDistortion3D', **ida_aug_conf['distortion_cfg']),
-    #          dict(type='RandomAugImageOneImage', data_config=ida_aug_conf_without)
-    #      ],
-    #      randomness_keys=['resize', 'resize_dims', 'crop', 'flip', 'pad', 'rotate', 'photometric_param'],
-    #      collected_keys=['resize', 'resize_dims', 'crop', 'flip', 'pad', 'rotate', 'photometric_param'],
-    #      override_aug_config=False,  # whether use the same aug config for multiview image
-    #      process_fields=['img', 'cam2img', 'lidar2cam', 'filename']),
+    dict(type='MultiViewWrapper',
+         transforms=[
+             dict(type='CustomPhotoMetricDistortion3D', **ida_aug_conf['distortion_cfg']),
+             dict(type='RandomAugOneImage', data_config=ida_aug_conf)
+         ],
+         randomness_keys=['resize', 'resize_dims', 'crop', 'flip', 'pad', 'rotate', 'photometric_param'],
+         collected_keys=['resize', 'resize_dims', 'crop', 'flip', 'pad', 'rotate', 'photometric_param'],
+         override_aug_config=False,  # whether use the same aug config for multiview image
+         process_fields=['img', 'cam2img', 'lidar2cam', 'filename']),
     dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='ObjectNameFilter', classes=class_names),
     dict(type='AddSupplementInfo'),
@@ -252,7 +252,7 @@ test_pipeline = [
     dict(type='CustomMultiViewWrapper',
          transforms=[
              dict(type='CustomPhotoMetricDistortion3D', **ida_aug_conf['distortion_cfg']),
-             dict(type='RandomAugImageOneImage', data_config=ida_aug_conf, is_train=False),],
+             dict(type='RandomAugOneImage', data_config=ida_aug_conf, is_train=False),],
          global_key=['sample_idx', 'gt_bboxes_3d'],
          randomness_keys=['resize', 'resize_dims', 'crop', 'flip', 'pad', 'rotate', 'photometric_param'],
          collected_keys=['resize', 'resize_dims', 'crop', 'flip', 'pad', 'rotate', 'photometric_param'],

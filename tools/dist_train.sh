@@ -15,9 +15,9 @@ export DEBUG=True
 #CONFIG="./projects/configs/fastbev/fastbev.py"
 #CONFIG="./projects/configs/roadside.py"
 #CONFIG="./projects/configs/cmt/cmt.py"
-CONFIG="./projects/configs/bevformer/bevformer.py"
+CONFIG="./projects/configs/roadside.py"
 TRAIN="./tools/custom_train.py"
-PORT=${PORT:-25620}
+PORT=${PORT:-25619}
 
 PYTHONPATH="$(dirname $0)/..":$PYTHONPATH \
 torchrun --nproc_per_node=$NGPUS --master_port=$PORT \

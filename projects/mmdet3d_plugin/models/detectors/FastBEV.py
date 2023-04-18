@@ -238,6 +238,9 @@ class FastBEVTRT(FastBEV):
         self.cam2img = None
         self.projection = None
         self.param = None
+        self.box_code_size = 7 # 没速度
+        self.anchors = self.pts_bbox_head.get_anchors_trt(device="cpu") # 调用anchor generator
+
 
     def set_cfg(self, cfg: Dict, device: str = 'cuda', dtype: str = torch.float32):
         for k, v in cfg.items():
@@ -253,6 +256,21 @@ class FastBEVTRT(FastBEV):
             for key, value_list in self.params.items():
                 param_list += value_list
             self.param = torch.nn.Parameter(torch.tensor(param_list))  # 3+3+3+36 = 45
+
+
+    def trt_decoder(self,cls_score, bbox_pred, dir_cls_pred):
+        bbox_pred = bbox_pred[0][0]
+        dir_cls_pred = dir_cls_pred[0][0]
+
+        if self.pts_bbox_head.use_sigmoid_cls:
+            cls_score = [score.sigmoid() for score in cls_score]
+        else:
+            cls_score = [score.softmax(-1) for score in cls_score]
+        bbox_pred = bbox_pred.permute(1, 2,0).reshape(-1, self.box_code_size)
+        # bboxes = self.pts_bbox_head.decode(bbox_pred)
+        dir_cls_pred = dir_cls_pred.permute(1, 2, 0).reshape(-1, 2)
+        # dir_cls_score = torch.max(dir_cls_pred, dim=-1)[1]
+        return cls_score, [bbox_pred], [dir_cls_pred]
 
 
     def forward(self, img: Tensor):
@@ -279,15 +297,18 @@ class FastBEVTRT(FastBEV):
         num_anchors = [int(self.pts_bbox_head.num_anchors * feature_bev[i].shape[-2] * \
                            feature_bev[i].shape[-1]) for i in range(len(feature_bev))]
         num_classes = self.pts_bbox_head.num_classes
-        cls_score = [item.permute(0, 2, 3, 1).reshape(bs, num_anchors[idx], num_classes) for idx, item in enumerate(cls_score)]
-        bbox_pred = [item.permute(0, 2, 3, 1).reshape(bs, num_anchors[idx], -1) for idx, item in enumerate(bbox_pred)]
-        dir_cls_preds = [item.permute(0, 2, 3, 1).reshape(bs, num_anchors[idx], 2) for idx, item in enumerate(dir_cls_preds)]
-        if self.pts_bbox_head.use_sigmoid_cls:
-            cls_score = [score.sigmoid() for score in cls_score]
-        else:
-            cls_score = [score.softmax(-1) for score in cls_score]
 
-        result = torch.cat((cls_score[0], bbox_pred[0], dir_cls_preds[0]), dim=-1)
+        cls_score, bboxes, dir_cls_score = self.trt_decoder(cls_score, bbox_pred, dir_cls_preds)
+
+        cls_score = [item.permute(0, 2, 3, 1).reshape(bs, num_anchors[idx], num_classes) for idx, item in enumerate(cls_score)]
+        # bbox_pred = [item.permute(0, 2, 3, 1).reshape(bs, num_anchors[idx], -1) for idx, item in enumerate(bbox_pred)]
+        # dir_cls_preds = [item.permute(0, 2, 3, 1).reshape(bs, num_anchors[idx], 2) for idx, item in
+        #                  enumerate(dir_cls_preds)]
+        bboxes = [item.reshape(bs, num_anchors[idx], self.box_code_size) for idx, item in enumerate(bboxes)]
+        dir_cls_score = [item.reshape(bs, num_anchors[idx], 2).to(bboxes[0].dtype) for idx, item in enumerate(dir_cls_score)]
+
+        result = torch.cat((cls_score[0], bboxes[0], dir_cls_score[0]), dim=-1)
+        # result = torch.cat((cls_score[0], bbox_pred[0], dir_cls_preds[0]), dim=-1)
         DEBUG_print(f"final output shape: {result.shape}")
 
         return result
@@ -315,17 +336,6 @@ def get_points(n_voxels: Tensor, voxel_size: Tensor, origin: Tensor):
     # points: [3, n_voxels[0], n_voxels[1], n_voxels[2]]
     return points
 
-# def compute_projection(extrinsics: Tensor, intrinsics: Tensor, stride: Union[float, int], noise: float = 0.):
-#     # extrinsics: [bs, 6, 4, 4]
-#     # intrinsics: [bs, 6, 4, 4]
-#     bs = extrinsics.size(0)
-#     extrinsics = extrinsics.reshape(-1, 4, 4)
-#     intrinsics = intrinsics.reshape(-1, 4, 4)
-#
-#     intrinsic_extrinsic = compute_projection_single_batch(extrinsics, intrinsics, stride, noise=noise)
-#     intrinsic_extrinsic = intrinsic_extrinsic.reshape(bs, -1, 4, 4)
-#
-#     return intrinsic_extrinsic
 
 def compute_projection(extrinsics: Tensor, intrinsics: Tensor, stride: Union[float, int], noise: float = 0.):
     # extrinsics: [*, 4, 4]

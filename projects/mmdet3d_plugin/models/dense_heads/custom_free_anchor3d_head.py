@@ -1,3 +1,4 @@
+import math
 from typing import Dict, List, Optional, Union, Tuple
 
 import torch
@@ -13,6 +14,38 @@ from torch.cuda.amp import autocast
 __all__ = ['CustomFreeAnchor3DHead']
 @MODELS.register_module()
 class CustomFreeAnchor3DHead(FreeAnchor3DHead):
+
+    def get_anchors_trt(self,device: str = 'cuda'):
+        featmap_sizes = [[100,100]]
+        anchor_list = self.prior_generator.grid_anchors(featmap_sizes, device=device)
+        self.anchors = torch.cat(anchor_list)
+
+
+    def decode(self, deltas):
+        anchors = self.anchors
+        cas, cts = [], []
+        box_ndim = anchors.shape[-1]
+        if box_ndim > 7:
+            xa, ya, za, wa, la, ha, ra, *cas = torch.split(anchors, 1, dim=-1)
+            xt, yt, zt, wt, lt, ht, rt, *cts = torch.split(deltas, 1, dim=-1)
+        else:
+            xa, ya, za, wa, la, ha, ra = torch.split(anchors, 1, dim=-1)
+            xt, yt, zt, wt, lt, ht, rt = torch.split(deltas, 1, dim=-1)
+
+        za = za + ha / 2
+        diagonal = torch.sqrt(la**2 + wa**2)
+        xg = xt * diagonal + xa
+        yg = yt * diagonal + ya
+        zg = zt * ha + za
+
+        lg = torch.exp(lt) * la
+        wg = torch.exp(wt) * wa
+        hg = torch.exp(ht) * ha
+        rg = rt + ra
+        zg = zg - hg / 2
+        cgs = [t + a for t, a in zip(cts, cas)]
+        return torch.cat([xg, yg, zg, wg, lg, hg, rg, *cgs], dim=-1)
+
     def loss_by_feat(
             self,
             cls_scores: List[Tensor],

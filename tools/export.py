@@ -198,7 +198,7 @@ def main():
     model = runner.build_model(cfg.model)
     load_checkpoint(model, cfg.load_from)
 
-    DEPLOY = False
+    DEPLOY = True # False True
     img = test(input_size, use_fixed_value=False, fixed_value=2.2)
 
     default_cfg = dict(
