@@ -15,9 +15,12 @@ from mmengine.runner.amp import autocast
 __all__ = ['CustomVisLoop']
 @LOOPS.register_module()
 class CustomVisLoop(TestLoop):
-    def __init__(self, iter_nums=150, **kwargs):
+    def __init__(self, iter_nums=150,vis=False, **kwargs):
         super().__init__(**kwargs)
         self.iter_nums = min(len(self.dataloader), iter_nums)
+        if not vis:
+            self.iter_nums = len(self.dataloader)
+        self.vis = vis
 
     def run(self) -> None:
         """Launch test."""
@@ -30,10 +33,18 @@ class CustomVisLoop(TestLoop):
             if idx >= self.iter_nums:
                 break
             results.append(self.run_iter(idx, data_batch))
+        if self.vis:
+            self.dataloader.dataset.vis(results, self.runner)
+        else:
+            # compute metrics
+            # self.evaluator.metrics[0].results = results
+            metrics = self.evaluator.evaluate(len(self.dataloader.dataset))
+            self.runner.call_hook('after_test_epoch', metrics=metrics)
+            self.runner.call_hook('after_test')
+            return metrics
 
-        self.dataloader.dataset.vis(results, self.runner)
 
-        # # compute metrics
+        # compute metrics
         # metrics = self.evaluator.evaluate(len(self.dataloader.dataset))
         # self.runner.call_hook('after_test_epoch', metrics=metrics)
         # self.runner.call_hook('after_test')
@@ -51,4 +62,11 @@ class CustomVisLoop(TestLoop):
         # predictions should be sequence of BaseDataElement
         with autocast(enabled=self.fp16):
             outputs = self.runner.model.test_step(data_batch)
+
+        self.evaluator.process(data_samples=outputs, data_batch=data_batch)
+        self.runner.call_hook(
+            'after_test_iter',
+            batch_idx=idx,
+            data_batch=data_batch,
+            outputs=outputs)
         return outputs

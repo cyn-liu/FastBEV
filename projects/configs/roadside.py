@@ -2,23 +2,6 @@
 _base_ = ['mmdet3d::_base_/default_runtime.py',
           'mmdet3d::_base_/schedules/cyclic-20e.py']
 
-def __date():
-    import datetime
-    return datetime.datetime.now().strftime('%Y%m%d-%H%M')
-
-class_names = [
-    "Pedestrian", "Car","MotorcyleRider", "Crane", "Motorcycle", "Bus", "BicycleRider", "Van", "Excavator", "TricycleRider","Truck"
-]
-
-metainfo = dict(classes=class_names)
-
-input_modality = dict(use_lidar=False,
-                      use_camera=True,
-                      use_radar=False,
-                      use_map=False,
-                      use_can_bus=False,
-                      use_external=False)
-
 batch_size = 60
 test_batch_size = 1
 epochs = 50
@@ -40,16 +23,41 @@ load_from = None
 # load_from = "/home/fuyu/zhangbin/code/MSBEVFusion/work_dirs/roadside_train_half_resolution_aug_20230405-1829/epoch_24.pth"
 resume = None
 
+
+class_names = [
+    "Pedestrian", "Car","MotorcyleRider", "Crane", "Motorcycle", "Bus", "BicycleRider", "Van", "Excavator", "TricycleRider","Truck"
+]
+
+dataset_type = 'RoadsideDataset'
+data_root = '/data/fuyu/fastbev/roadside/'
+
+metainfo = dict(classes=class_names)
+
+input_modality = dict(use_lidar=False,
+                      use_camera=True,
+                      use_radar=False,
+                      use_map=False,
+                      use_can_bus=False,
+                      use_external=False)
+
+
 work_dir_postfix_name = "half_res_aug"
 
 suffix = 'roadside_aug'
 save2cfg = dict(
-    plot_examples=10,
+    plot_examples=1,
     plot_range=[*point_cloud_range[:2], *point_cloud_range[3:5]],
     img_save_index=[[1, 0, 2]],
     draw_gt=True, draw_pred=True, pred_score_thr=pred_score_thr,
     transpose=True,
     save_only_master=True)
+
+
+
+def __date():
+    import datetime
+    return datetime.datetime.now().strftime('%Y%m%d-%H%M')
+
 save2img_cfg = dict(**save2cfg,
                     save_dir='./pts_img_vis/' + suffix + '-' + work_dir_postfix_name + '-' + __date())
 save2img_pipline_cfg = dict(**save2cfg,
@@ -58,6 +66,8 @@ save2img_pipline_cfg = dict(**save2cfg,
 
 plugin = True
 plugin_dir = 'projects/mmdet3d_plugin/'
+
+
 
 work_dir_postfix = "_" + work_dir_postfix_name + '_' + __date()
 
@@ -170,8 +180,7 @@ model = dict(
             max_num=500)))
 
 
-dataset_type = 'RoadsideDataset'
-data_root = '/home/fuyu/zhangbin/datasets/roadside'
+
 data_prefix = dict(
     CAM_FRONT='images',
     CAM_RIGHT='images',
@@ -292,7 +301,7 @@ test_dataloader = dict(
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
-        ann_file='roadside_infos_show_3.pkl',
+        ann_file='roadside_infos_show_10.pkl',
         pipeline=test_pipeline,
         metainfo=metainfo,
         modality=input_modality,
@@ -304,12 +313,20 @@ test_dataloader = dict(
         # indices=200,
         box_type_3d='LiDAR'))
 
+# test_evaluator = dict(
+#     type='NuScenesMetric',
+#     data_root=data_root,
+#     ann_file=data_root + 'roadside_infos_val.pkl',
+#     modality=input_modality,
+#     metric='bbox')
+
 test_evaluator = dict(
-    type='NuScenesMetric',
-    data_root=data_root,
-    ann_file=data_root + 'roadside_infos_val.pkl',
-    modality=input_modality,
-    metric='bbox')
+    type='KittiMetric',
+    ann_file=data_root + 'roadside_infos_show_10.pkl',
+    metric='bbox',
+    format_only=True,
+    default_cam_key = "CAM_FRONT",
+    submission_prefix='results/kitti-3class/kitti_results')
 
 vis_backends = [dict(type='TensorboardVisBackend')]
 visualizer = dict(type='Det3DLocalVisualizer', vis_backends=vis_backends, name='visualizer')
@@ -360,7 +377,8 @@ param_scheduler = [
 train_cfg = dict(_delete_=True, type='EpochBasedTrainLoop', max_epochs=epochs, val_interval=epochs)
 val_cfg = None
 # test_cfg = dict(type='TestLoop')
-test_cfg = dict(type='CustomVisLoop', iter_nums=10*120)
+
+test_cfg = dict(type='CustomVisLoop', iter_nums=1000,vis=False)
 
 
 default_hooks = dict(

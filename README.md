@@ -3,7 +3,7 @@
 ## Abstract
 base: https://github.com/Sense-GVT/Fast-BEV 
 
-delete time sequence , velocity
+delete time sequence . you can add time seq in forward_3d refer to author's code.
 
 update mm releated ,
 

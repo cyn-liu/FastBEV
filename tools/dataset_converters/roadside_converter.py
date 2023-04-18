@@ -28,6 +28,7 @@ CAM_MAP = {"CAM_FRONT": "front",
 export_show_pkl = True
 test = False
 show_pkl_len = 10
+image_shape = {"height":720,"width":1280}
 
 def create_roadside_pkl(label_dir=None):
 
@@ -46,7 +47,7 @@ def create_roadside_pkl(label_dir=None):
             that will be saved to the info file.
     """
 
-    data_dir = "/home/fuyu/zhangbin/datasets/roadside"
+    data_dir = '/data/fuyu/fastbev/roadside/'
     label_dir = os.path.join(data_dir,"labels")
     label_files_front = glob.glob(label_dir + "/*_front.txt")
 
@@ -90,8 +91,8 @@ def create_roadside_pkl(label_dir=None):
     else:
         import random
         random.shuffle(label_files_front)
-    import random
-    random.shuffle(label_files_front)
+    # import random
+    # random.shuffle(label_files_front)
 
     print(f"label_files_front: {len(label_files_front)}")
     split_val = int(len(label_files_front) * 0.9)
@@ -112,7 +113,9 @@ def create_roadside_pkl(label_dir=None):
 
             info_cameras[CAM_TYPE] = dict(img_path=img_path,
                                           cam2img= cam2img,
-                                          lidar2cam=lidar2cam)
+                                          lidar2cam=lidar2cam,
+                                          height=image_shape["height"],
+                                          width=image_shape["width"],)
 
         # process_3d
         label_file_3d = label_file_front.replace("/labels/","/labels_3d/").replace("_front.txt",".json")
@@ -160,21 +163,25 @@ def create_roadside_pkl(label_dir=None):
         len(train_nusc_infos), len(val_nusc_infos)))
 
     if export_show_pkl:
+
         for i in range(show_pkl_len+1):
             data = dict(data_list=show_nusc_infos[i], metainfo=metainfo)
             show_val_path = osp.join(data_dir,
                                      '{}_infos_show_{}.pkl'.format("roadside",i))
+            print(show_val_path)
             mmengine.dump(data, show_val_path)
     else:
         data = dict(data_list=train_nusc_infos, metainfo=metainfo)
         info_path = osp.join(data_dir,
                              '{}_infos_train.pkl'.format("roadside"))
         mmengine.dump(data, info_path)
+        print(info_path)
 
         data = dict(data_list=val_nusc_infos, metainfo=metainfo)
         info_val_path = osp.join(data_dir,
                                  '{}_infos_val.pkl'.format("roadside"))
         mmengine.dump(data, info_val_path)
+        print(info_val_path)
 
     print("====over====")
 
