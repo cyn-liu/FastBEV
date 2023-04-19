@@ -18,6 +18,30 @@ https://github.com/thfylsty/FastBEV-TensorRT
 
 read [install](docs/install.md) first for environment
 
+# Demo on nuScenes
+
+###  dataset convert
+
+tools/create_data.sh
+
+### train
+
+tools/dist_train.sh
+
+in train.sh , we use *fastbev-tiny.py*  ~= author's fastbev-m0
+
+### export
+
+update soon
+
+### deploy
+
+update soon
+
+
+
+
+
 # 用法
 
 ### 测试环境一
