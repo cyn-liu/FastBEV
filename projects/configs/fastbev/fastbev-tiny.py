@@ -285,7 +285,7 @@ train_dataloader = dict(
         type='CBGSDataset',dataset=dict(
             type=dataset_type,
             data_root=data_root,
-            ann_file='nuscenes_infos_val.pkl',
+            ann_file='nuscenes_infos_train.pkl',
             pipeline=train_pipeline,
             metainfo=metainfo,
             modality=input_modality,
