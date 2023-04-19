@@ -2,9 +2,9 @@
 
 [Abstract](#Abstract)
 
-[Demo on nuScenes](#Demo on nuScenes)
+[Demo on nuScenes](#DemoOnNuScenes)
 
-[Custom  dataset](#Custom  dataset)
+[Custom  dataset](#CustomDataset)
 
 [environment](#用法)
 
@@ -28,7 +28,7 @@ https://github.com/thfylsty/FastBEV-TensorRT
 
 read [install](docs/install.md) first for environment
 
-# Demo on nuScenes
+# DemoOnNuScenes
 
 ###  dataset convert
 
@@ -49,7 +49,7 @@ update soon
 update soon
 
 
-# Custom  dataset
+# CustomDataset
 
 ### how to convert to mm.pkl
 refer to tools/dataset_converters/roadside_converter.py
