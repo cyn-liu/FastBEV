@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-export CUDA_VISIBLE_DEVICES=4
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,7
 NGPUS=$(echo $CUDA_VISIBLE_DEVICES | tr ',' '\n' | wc -l)
 
 
@@ -10,12 +10,9 @@ export NCCL_DEBUG=info
 export DEBUG=True
 #export CUDA_LAUNCH_BLOCKING=1
 
-#CONFIG="./projects/configs/msfusion/msbevfusion.py"
-#CONFIG="./pointpillars_hv_fpn_head-free-anchor_sbn-all_8xb4-2x_nus-3d_full.py"
-#CONFIG="./projects/configs/fastbev/fastbev.py"
+
+CONFIG="./projects/configs/fastbev/fastbev-tiny.py"
 #CONFIG="./projects/configs/roadside.py"
-#CONFIG="./projects/configs/cmt/cmt.py"
-CONFIG="./projects/configs/roadside.py"
 TRAIN="./tools/custom_train.py"
 PORT=${PORT:-25619}
 

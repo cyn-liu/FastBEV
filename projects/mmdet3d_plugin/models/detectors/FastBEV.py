@@ -112,7 +112,8 @@ class FastBEV(CustomBaseDetector):
         mlvl_feats_ = []
         # fpn output fusion
         for msid in self.multi_scale_id:
-            fuse_feats = [mlvl_feats[msid]] + [self.resize_func(mlvl_feats[i], scale_factor=self.upsample_factor[i]) \
+            # fix bug  .  resize with fixed size for onnx export easily
+            fuse_feats = [mlvl_feats[msid]] + [self.resize_func(mlvl_feats[i], scale_factor=self.upsample_factor[i] / self.upsample_factor[msid] ) \
                                                for i in range(msid + 1, len(mlvl_feats))]
             fuse_feats = torch.cat(fuse_feats, dim=1)
             fuse_feats = getattr(self, f'neck_fuse_{msid}')(fuse_feats)
@@ -204,7 +205,7 @@ class FastBEV(CustomBaseDetector):
                                      extrinsic_noise=self.extrinsic_noise)  # [bs, c, vx, vy, vz]
         return volume
 
-
+# TODO  这个plugin前后有大量的reshape，待优化
 class ProjectPlugin(torch.autograd.Function):
     output_size = None
 
@@ -266,11 +267,12 @@ class FastBEVTRT(FastBEV):
             cls_score = [score.sigmoid() for score in cls_score]
         else:
             cls_score = [score.softmax(-1) for score in cls_score]
-        bbox_pred = bbox_pred.permute(1, 2,0).reshape(-1, self.box_code_size)
-        # bboxes = self.pts_bbox_head.decode(bbox_pred)
+        # bbox_pred = bbox_pred.permute(1, 2,0).reshape(-1, self.box_code_size)
+        # TODO decode 后面扔到trtpro里，待优化
+        bboxes = self.pts_bbox_head.decode(bbox_pred)
         dir_cls_pred = dir_cls_pred.permute(1, 2, 0).reshape(-1, 2)
         # dir_cls_score = torch.max(dir_cls_pred, dim=-1)[1]
-        return cls_score, [bbox_pred], [dir_cls_pred]
+        return cls_score, [bboxes], [dir_cls_pred]
 
 
     def forward(self, img: Tensor):

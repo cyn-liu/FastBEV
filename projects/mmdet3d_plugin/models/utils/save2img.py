@@ -210,7 +210,10 @@ class PointCloudImgSaver(object):
         if transpose:
             data_3d['pts_img'] = np.rot90(data_3d['pts_img'], k=1)
         if data_input['imgs'] is not None:
-            img_plot_list = multi_apply(save_img_single, data_input['imgs'], input_metas['lidar2img'],
+            lidar2imgkey = 'lidar2img'
+            if (not 'lidar2img' in input_metas ) and ("lidar2cam" in input_metas):
+                lidar2imgkey = 'lidar2cam'
+            img_plot_list = multi_apply(save_img_single, data_input['imgs'], input_metas[lidar2imgkey],
                                         boxes_3d=bboxes_3d, labels=labels_3d, scores=scores_3d,
                                         vis_config=vis_config, pred_config=pred_config)[0]
             data_3d['img'] = concat_img(img_plot_list, img_save_index)

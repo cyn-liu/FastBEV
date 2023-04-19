@@ -60,7 +60,7 @@ python -c "import mmdet;print(mmdet.__version__)"
 
 ```shell
 
-min install mmdet3d==1.1.0rc3
+mim install mmdet3d==1.1.0rc3
 
 # 验证安装，如无报错即安装成功。
 python -c "import mmdet3d;print(mmdet3d.__version__)"

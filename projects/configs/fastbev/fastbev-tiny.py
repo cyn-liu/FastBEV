@@ -4,21 +4,29 @@ _base_ = ['mmdet3d::_base_/default_runtime.py',
 # load_from = './ckpt/fastbev/fastbev_m5_epoch_20.pth'
 resume = False
 
-batch_size = 14
+batch_size = 44
 val_batch_size = 1
 epochs = 24
-log_interval = 100
+log_interval = 10
+pred_score_thr = 0.9
+checkpoint_interval = 1
 
 
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
 bev_size = [200, 200]
 num_points_in_pillar = 6
 
-multi_scale_id=[0, 1, 2]  # 4x/8x/16x
+final_size = (256, 704)
+
+n_cams = 6
+
+multi_scale_id=[0] # 单尺度特征
+
 raw_net=True  # 是否用Fastbev 原始网络 原始投影
+
 fuse_dim = len(multi_scale_id) if raw_net else 1
 
-dataset_type = 'NuScenesDataset'
+dataset_type = 'MyNuscenesDataset'
 data_root = '/data/fuyu/dataset/nuscenes'
 
 camera_types = ['CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_FRONT_LEFT',
@@ -34,6 +42,28 @@ def __date():
     return datetime.datetime.now().strftime('%Y%m%d-%H%M')
 
 work_dir_postfix = '_' + __date()
+
+
+suffix = 'nuScenes_aug'
+save2cfg = dict(
+    plot_examples=50,
+    plot_range=[*point_cloud_range[:2], *point_cloud_range[3:5]],
+    draw_gt=True, draw_pred=True, pred_score_thr=0.3,
+    transpose=False,
+    save_only_master=True)
+
+
+work_dir_postfix_name = "half_res_aug"
+def __date():
+    import datetime
+    return datetime.datetime.now().strftime('%Y%m%d-%H%M')
+
+save2img_cfg = dict(**save2cfg,
+                    save_dir='./pts_img_vis/' + suffix + '-' + work_dir_postfix_name + '-' + __date())
+save2img_pipline_cfg = dict(**save2cfg,
+                            save_dir='./pts_img_vis_pipline/' + suffix + '-' + work_dir_postfix_name + '-' + __date())
+
+
 
 data_prefix = dict(
     pts='samples/LIDAR_TOP',
@@ -68,43 +98,45 @@ model = dict(
         std=[58.395, 57.12, 57.375],
         bgr_to_rgb=True,
         pad_size_divisor=32),
+    # input_modality=input__cfg,
+    use_grid_mask=True,
     backbone=dict(
         type='mmdet.ResNet',
-        depth=50,
+        depth=18,
         num_stages=4,
         out_indices=(0, 1, 2, 3),
         frozen_stages=1,
-        norm_cfg=dict(type='SyncBN', requires_grad=True),
+        norm_cfg=dict(type='BN', requires_grad=False),
         norm_eval=True,
         style='pytorch',
-        init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50')),
+        init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet18')),
     neck=dict(
         type='mmdet.FPN',
-        norm_cfg=dict(type='SyncBN', requires_grad=True),
-        in_channels=[256, 512, 1024, 2048],
+        norm_cfg=dict(type='BN', requires_grad=True),
+        in_channels=[64, 128, 256, 512],
         out_channels=64,
         num_outs=4,
         relu_before_extra_convs=True),
-    neck_fuse=dict(in_channels=[256, 192, 128], out_channels=[64, 64, 64]),
+    neck_fuse=dict(in_channels=[256], out_channels=[64]),
     neck_3d=dict(
         type='M2BevNeck',
-        in_channels=256,
-        out_channels=256,
-        num_layers=6,
+        in_channels=64*4,
+        out_channels=192,
+        num_layers=2,
         stride=2,
-        is_transpose=False,
-        fuse=dict(in_channels=64*num_points_in_pillar*fuse_dim, out_channels=256),
-        norm_cfg=dict(type='SyncBN', requires_grad=True)),
+        is_transpose=True,
+        fuse=dict(in_channels=64*num_points_in_pillar, out_channels=256),
+        norm_cfg=dict(type='BN', requires_grad=True)),
     bbox_head=dict(
         type='CustomFreeAnchor3DHead',
-        num_classes=10,
-        in_channels=256,
-        feat_channels=256,
-        use_direction_classifier=True,
         pre_anchor_topk=25,
         bbox_thr=0.5,
         gamma=2.0,
         alpha=0.5,
+        num_classes=len(class_names),
+        in_channels=192,
+        feat_channels=192,
+        use_direction_classifier=True,
         anchor_generator=dict(
             type='AlignedAnchor3DRangeGenerator',
             ranges=[[*point_cloud_range[:2], -1.8, *point_cloud_range[3:5], -1.8]],
@@ -161,7 +193,7 @@ model = dict(
 file_client_args = dict(backend='disk')
 
 
-final_size = (320, 800)
+
 
 ida_aug_conf = dict(
     distortion_cfg=dict(
@@ -253,7 +285,7 @@ train_dataloader = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_root,
-            ann_file='nuscenes_infos_val.pkl',
+            ann_file='nuscenes_infos_train.pkl',
             pipeline=train_pipeline,
             metainfo=metainfo,
             modality=input_modality,
@@ -371,7 +403,7 @@ default_hooks = dict(
     timer=dict(type='IterTimerHook'),
     logger=dict(type='LoggerHook', interval=log_interval),
     param_scheduler=dict(type='ParamSchedulerHook'),
-    checkpoint=dict(type='CheckpointHook', interval=5),
+    checkpoint=dict(type='CheckpointHook', interval=checkpoint_interval),
     sampler_seed=dict(type='DistSamplerSeedHook'),
     visualization=dict(type='Det3DVisualizationHook'))
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-export CUDA_VISIBLE_DEVICES=7
+export CUDA_VISIBLE_DEVICES=6
 NGPUS=$(echo $CUDA_VISIBLE_DEVICES | tr ',' '\n' | wc -l)
 
 
@@ -17,12 +17,12 @@ export DEBUG=True
 #CONFIG="./ckpt/centerpoint_secfpn/centerpoint_voxel0075_second_secfpn_head-circlenms_8xb4-cyclic-20e_nus-3d_full.py"
 #CHECKPOINT='./ckpt/centerpoint_secfpn/centerpoint_0075voxel_second_secfpn_circlenms_4x8_cyclic_20e_nus_20220810_011659-04cb3a3b.pth'
 
-## fastbev
-#CONFIG="./projects/configs/fastbev/fastbev.py"
-#CHECKPOINT='./work_dirs/fastbev_train_20230324-1211/epoch_24.pth'
+# fastbev
+CONFIG="./projects/configs/fastbev/fastbev-tiny.py"
+CHECKPOINT='./work_dirs/fastbev-tiny_train_20230419-1302//epoch_1.pth'
 
-CONFIG="./projects/configs/roadside.py"
-CHECKPOINT='/home/fuyu/zhangbin/code/MSBEVFusion/work_dirs/roadside_train_half_res_aug_20230405-2208/epoch_50.pth'
+#CONFIG="./projects/configs/roadside.py"
+#CHECKPOINT='/home/fuyu/zhangbin/code/MSBEVFusion/work_dirs/roadside_train_half_res_aug_20230405-2208/epoch_50.pth'
 
 TEST="./tools/custom_test.py"
 PORT=${PORT:-29503}

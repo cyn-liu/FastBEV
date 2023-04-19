@@ -9,6 +9,10 @@ update mmcv mmdet mmdet3d ....  releted ,
 
 add onnx export for tensorrt
 
+fastbev-tiny ~= author's fastbev-m0. add neck fuse in m0
+
+nuScenes is comming soon, wait few days (1-3day) 
+
 https://github.com/thfylsty/FastBEV-TensorRT
 
 
