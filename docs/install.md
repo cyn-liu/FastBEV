@@ -88,7 +88,7 @@ if find some error of {numba、tensorboard}, please see the instructions in requ
 **j. Prepare pretrained models.**
 
 ```shell
-mkedir ckpt & cd ckpts & wget https://github.com/zhiqi-li/storage/releases/download/v1.0/r101_dcn_fcos3d_pretrain.pth
+mkdir ckpt & cd ckpt & wget https://github.com/zhiqi-li/storage/releases/download/v1.0/r101_dcn_fcos3d_pretrain.pth
 cd ..
 ```
 
