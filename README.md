@@ -28,6 +28,14 @@ https://github.com/thfylsty/FastBEV-TensorRT
 
 read [install](docs/install.md) first for environment
 
+TODO
+
+[ ] author's data augment
+
+[ ] evaluation fuction
+ 
+
+
 # DemoOnNuScenes
 
 ###  dataset convert
