@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-export CUDA_VISIBLE_DEVICES=6
+export CUDA_VISIBLE_DEVICES=7
 NGPUS=$(echo $CUDA_VISIBLE_DEVICES | tr ',' '\n' | wc -l)
 
 
@@ -19,7 +19,7 @@ export DEBUG=True
 
 # fastbev
 CONFIG="./projects/configs/fastbev/fastbev-tiny.py"
-CHECKPOINT='./work_dirs/fastbev-tiny_train_20230419-1302//epoch_1.pth'
+CHECKPOINT='/home/fuyu/code/mmbevdet/work_dirs/fastbev-tiny_train_half_res_aug_20230419-1625/epoch_6.pth'
 
 #CONFIG="./projects/configs/roadside.py"
 #CHECKPOINT='/home/fuyu/zhangbin/code/MSBEVFusion/work_dirs/roadside_train_half_res_aug_20230405-2208/epoch_50.pth'

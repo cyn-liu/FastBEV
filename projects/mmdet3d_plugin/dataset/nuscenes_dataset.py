@@ -20,12 +20,12 @@ __all__ = ['MyNuscenesDataset']
 @DATASETS.register_module()
 class MyNuscenesDataset(NuScenesDataset):
 
-    def __init__(self,  **kwargs) -> None:
+    def __init__(self,pred_score_thr=0.4, show_score=True, **kwargs) -> None:
         super().__init__( **kwargs)
-        self.pred_score_thr = 0.1
+        self.pred_score_thr = pred_score_thr
         self.order_input = True
-        self.fps = 25
-        self.show_score = True
+        self.fps = 5
+        self.show_score = show_score
         self.save_img = False
 
 
@@ -52,7 +52,7 @@ class MyNuscenesDataset(NuScenesDataset):
         mkdir_or_exist(video_out_dir)
 
         colors = get_colors()
-        all_img_gt, all_img_pred, all_bev_gt, all_bev_pred, all_img_filename = [], [], [], [], []
+        all_img_gt, all_img_pred,all_img_gt_bottom, all_img_pred_bottom, all_bev_gt, all_bev_pred, all_img_filename = [], [], [], [], [],[], []
 
         logger.info(f"converting images")
         for i, result in tqdm(enumerate(results), total=len(results)):
@@ -76,6 +76,8 @@ class MyNuscenesDataset(NuScenesDataset):
                 bev_gt_img = draw_bev_bbox_corner(bev_gt_img, bev_gt_bboxes[idx], colors[labels_gt[idx]],
                                                        scale_fac)
 
+            draw_ego(bev_gt_img)
+            draw_ego(bev_pred_img)
             bev_pred_img = process_bev_res_in_front(bev_pred_img)
             bev_gt_img = process_bev_res_in_front(bev_gt_img)
             all_bev_gt.append(mmcv.imrescale(bev_gt_img, 0.5))
@@ -123,10 +125,17 @@ class MyNuscenesDataset(NuScenesDataset):
                 img_gt_list.append(mmcv.imrescale(img_gt, 0.5))
                 img_pred_list.append(mmcv.imrescale(img_pred, 0.5))
 
-            tmp_img_up_pred = np.concatenate(sort_list(img_pred_list[0:3], sort=[1, 0, 2]), axis=0)
+            tmp_img_up_pred = np.concatenate(sort_list(img_pred_list[0:3], sort=[1, 0, 2]), axis=1)
             all_img_pred.append(tmp_img_up_pred)
-            tmp_img_up_gt = np.concatenate(sort_list(img_gt_list[0:3], sort=[1, 0, 2]), axis=0)
+            tmp_img_up_gt = np.concatenate(sort_list(img_gt_list[0:3], sort=[1, 0, 2]), axis=1)
             all_img_gt.append(tmp_img_up_gt)
+
+            tmp_img_up_pred = np.concatenate(sort_list(img_pred_list[3:], sort=[1, 0, 2]), axis=1)
+            all_img_pred_bottom.append(tmp_img_up_pred)
+            tmp_img_up_gt = np.concatenate(sort_list(img_gt_list[3:], sort=[1, 0, 2]), axis=1)
+            all_img_gt_bottom.append(tmp_img_up_gt)
+
+            # TODO
             all_img_filename.append(Path(info['images']['CAM_FRONT']['img_path']).stem)
 
         if self.order_input:
@@ -134,6 +143,8 @@ class MyNuscenesDataset(NuScenesDataset):
             all_bev_gt_sorted = all_bev_gt
             all_img_pred_sorted = all_img_pred
             all_img_gt_sorted = all_img_gt
+            all_img_pred_sorted_bottom = all_img_pred_bottom
+            all_img_gt_sorted_bottom = all_img_gt_bottom
         else:
             sorted_data = sorted(enumerate(all_img_filename), key=lambda x: datetime.strptime(x[1].split("_")[0], '%Y-%m-%d-%H-%M-%S'))
             sorted_indices = [x[0] for x in sorted_data]
@@ -143,7 +154,11 @@ class MyNuscenesDataset(NuScenesDataset):
             all_img_pred_sorted = [all_img_pred[i] for i in sorted_indices]
             all_img_gt_sorted = [all_img_gt[i] for i in sorted_indices]
 
-        merged_image_tmp = process_img(all_bev_pred_sorted[0], all_img_pred_sorted[0])
+            all_img_pred_sorted_bottom = [all_img_pred_bottom[i] for i in sorted_indices]
+            all_img_gt_sorted_bottom = [all_img_gt_bottom[i] for i in sorted_indices]
+
+
+        merged_image_tmp = process_img(all_bev_pred_sorted[0], all_img_pred_sorted[0], all_img_pred_sorted_bottom[0])
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         pred_video = cv2.VideoWriter(os.path.join(video_out_dir, 'video_pred.mp4'), fourcc, fps,
                                      merged_image_tmp.shape[:2][::-1])
@@ -159,8 +174,8 @@ class MyNuscenesDataset(NuScenesDataset):
                 cv2.imwrite(img_out_dir + '/' + str(i) + '_predimg.png', all_img_pred_sorted[i])
                 cv2.imwrite(img_out_dir + '/' + str(i) + '_gtbev.png', all_bev_gt_sorted[i])
                 cv2.imwrite(img_out_dir + '/' + str(i) + '_gtimg.png', all_img_gt_sorted[i])
-            pred_video.write(np.uint8(process_img(all_bev_pred_sorted[i], all_img_pred_sorted[i])))
-            gt_video.write(np.uint8(process_img(all_bev_gt_sorted[i], all_img_gt_sorted[i])))
+            pred_video.write(np.uint8(process_img(all_bev_pred_sorted[i], all_img_pred_sorted[i],all_img_pred_sorted_bottom[i])))
+            gt_video.write(np.uint8(process_img(all_bev_gt_sorted[i], all_img_gt_sorted[i],all_img_gt_sorted_bottom[i])))
 
         pred_video.release()
         gt_video.release()
@@ -247,11 +262,21 @@ def process_bev_res_in_front(bev):
     bev = np.flip(bev, axis=0)
     return bev
 
-def process_img(bev, img):
+def draw_ego(img):
+    h, w = img.shape[:2]
+    center = (w // 2, h // 2)
+    radius = 10
+    color = (255, 255, 255)
+    thickness = -1
+    cv2.circle(img, center, radius, color, thickness)
+
+def process_img(bev, img,img_bottom):
     # bev = np.rot90(bev, k=1, axes=(0, 1))
-    scale_factor_bev = 1080 / bev.shape[0]
-    scale_factor_img = 1080 / img.shape[0]
+    scale_factor_bev = 1080 / bev.shape[1]
+    scale_factor_img = 1080 / img.shape[1]
+    scale_factor_img_bottom = 1080 / img_bottom.shape[1]
     bev = cv2.resize(bev, (int(bev.shape[1] * scale_factor_bev), int(bev.shape[0] * scale_factor_bev)))
     img = cv2.resize(img, (int(img.shape[1] * scale_factor_img), int(img.shape[0] * scale_factor_img)))
-    merged_image = np.concatenate((img, bev), axis=1)
+    img_bottom = cv2.resize(img_bottom, (int(img_bottom.shape[1] * scale_factor_img_bottom), int(img_bottom.shape[0] * scale_factor_img_bottom)))
+    merged_image = np.concatenate((img, bev,img_bottom), axis=0)
     return merged_image

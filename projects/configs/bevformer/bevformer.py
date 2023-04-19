@@ -1,12 +1,7 @@
 _base_ = ['mmdet3d::_base_/default_runtime.py',
           'mmdet3d::_base_/schedules/cyclic-20e.py']
 
-def __date():
-    import datetime
-    return datetime.datetime.now().strftime('%Y%m%d-%H%M')
 
-plugin = True
-plugin_dir = 'projects/mmdet3d_plugin/'
 
 camera_types = ['CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_FRONT_LEFT',
                 'CAM_BACK',  'CAM_BACK_LEFT', 'CAM_BACK_RIGHT',]
@@ -40,6 +35,12 @@ work_dir_postfix = "_" + work_dir_postfix_name + '_' + __date()
 
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
 
+def __date():
+    import datetime
+    return datetime.datetime.now().strftime('%Y%m%d-%H%M')
+
+plugin = True
+plugin_dir = 'projects/mmdet3d_plugin/'
 
 # img branch
 img_size = (900, 1600)

@@ -84,6 +84,7 @@ class PointCloudImgSaver(object):
         self.vis_config = get_colors_dict()
 
         self.plot_range = plot_range
+        self.frame = 0
 
     def single_img_process(self, img):
         if not self.img_process:
@@ -175,7 +176,7 @@ class PointCloudImgSaver(object):
     def get_save_name(self, input_metas):
         save_name_img = ''
         save_name_pts_img = ''
-
+        self.frame += 1
         if 'filename' in input_metas:
             if isinstance(input_metas['filename'], list):
                 filename_list = input_metas['filename']
@@ -192,7 +193,9 @@ class PointCloudImgSaver(object):
 
             img_name = Path(filename_list[0]).stem.split('__')[0] + '.png'
             save_name_img = os.path.join(self.save_dir, img_name)
-
+        else:
+            img_name = f"{self.frame}.png"
+            save_name_img = os.path.join(self.save_dir, img_name)
         if 'lidar_points' in input_metas:
             pts_img_name = Path(input_metas['lidar_points']['lidar_path']).stem.split('.')[0] + '.png'
             save_name_pts_img = os.path.join(self.save_dir, pts_img_name)

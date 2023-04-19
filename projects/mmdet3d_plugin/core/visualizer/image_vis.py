@@ -126,7 +126,8 @@ def plot_rect3d_on_img(img,
         thickness = vis_config[label]['thickness']
         if scores is not None:
             text = str("{:.2f}".format(scores[i]))
-            cv2.putText(img, text, (txt_x, txt_y), fontFace, fontScale, color, thickness)
+            if txt_x>0 and txt_y > 0:
+                cv2.putText(img, text, (txt_x, txt_y), fontFace, fontScale, color, thickness)
         try:
             for start, end in line_indices:
                 x_start = min(corners[start, 0], 10000)
