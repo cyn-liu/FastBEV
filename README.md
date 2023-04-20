@@ -50,11 +50,22 @@ in train.sh , we use *fastbev-tiny.py*  ~= author's fastbev-m0
 
 ### export
 
-update soon
+tools/dist_export.sh
+
+test with nuscenes.pth
+
+[baiduPan](https://pan.baidu.com/s/123CKusFDP7IQuUmD1bk-Tg?pwd=2cwz):2cwz
+
+[googleDrive](https://drive.google.com/file/d/1WZZxyI3rOedNnlrSOIlZs43vJnGc-ljW/view?usp=sharing)
+
+Note: This pth model has not been trained well. 
+There are also some abnormal predictions.
+
+JUST FOR TEST EXPORT ONLY.
 
 ### deploy
 
-update soon
+https://github.com/thfylsty/FastBEV-TensorRT
 
 
 # CustomDataset
