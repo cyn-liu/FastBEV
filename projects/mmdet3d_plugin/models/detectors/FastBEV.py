@@ -144,7 +144,7 @@ class FastBEV(CustomBaseDetector):
         return bev_feat
 
     def raw_project(self, mlvl_feats: List[Tensor], H: int, W: int,
-                    lidar2camera: Tensor, camera_intrinsics: Tensor):
+                    lidar2camera: Tensor, camera_intrinsics: Tensor,projection=None):
         """mlvl_feats: list([bs, n_cams, c, h, w])"""
         mlvl_volumes = []
         for lvl, lvl_feat in enumerate(mlvl_feats):
@@ -153,10 +153,10 @@ class FastBEV(CustomBaseDetector):
             for batch_id, batch_feat in enumerate(lvl_feat):
                 height = math.ceil(H / self.img_scale_factor[lvl])
                 width = math.ceil(W / self.img_scale_factor[lvl])
-
-                projection = compute_projection(
-                    lidar2camera[batch_id], camera_intrinsics[batch_id], self.img_scale_factor[lvl],
-                    noise=self.extrinsic_noise).to(batch_feat.device)
+                if projection is None:
+                    projection = compute_projection(
+                        lidar2camera[batch_id], camera_intrinsics[batch_id], self.img_scale_factor[lvl],
+                        noise=self.extrinsic_noise).to(batch_feat.device)
 
                 n_voxels_ = torch.tensor(self.num_voxels) / torch.tensor([self.down_stride[lvl], self.down_stride[lvl], 1])
                 voxel_size_ = torch.tensor(self.voxel_size) * torch.tensor([self.down_stride[lvl], self.down_stride[lvl], 1])
@@ -239,7 +239,7 @@ class FastBEVTRT(FastBEV):
         self.cam2img = None
         self.projection = None
         self.param = None
-        self.box_code_size = 7 # 没速度
+        self.box_code_size = kwargs["bbox_head"]["bbox_coder"]["code_size"]
         self.anchors = self.pts_bbox_head.get_anchors_trt(device="cpu") # 调用anchor generator
 
 
@@ -256,6 +256,7 @@ class FastBEVTRT(FastBEV):
             param_list = []
             for key, value_list in self.params.items():
                 param_list += value_list
+            self.projection = torch.tensor(self.params["projection"]).reshape((-1,4,4))
             self.param = torch.nn.Parameter(torch.tensor(param_list))  # 3+3+3+36 = 45
 
 
@@ -267,7 +268,7 @@ class FastBEVTRT(FastBEV):
             cls_score = [score.sigmoid() for score in cls_score]
         else:
             cls_score = [score.softmax(-1) for score in cls_score]
-        # bbox_pred = bbox_pred.permute(1, 2,0).reshape(-1, self.box_code_size)
+        bbox_pred = bbox_pred.permute(1, 2,0).reshape(-1, self.box_code_size)
         # TODO decode 后面扔到trtpro里，待优化
         bboxes = self.pts_bbox_head.decode(bbox_pred)
         dir_cls_pred = dir_cls_pred.permute(1, 2, 0).reshape(-1, 2)
@@ -291,7 +292,7 @@ class FastBEVTRT(FastBEV):
             volume = self.plugin.apply(mlvl_feats[0], self.param)
             volume = rearrange(volume, 'nx ny nz c -> 1 c nx ny nz')
         else:
-            volume = self.project_func(mlvl_feats, *self.input_size, self.lidar2cam, self.cam2img)
+            volume = self.project_func(mlvl_feats, *self.input_size, self.lidar2cam, self.cam2img,self.projection)
 
         feature_bev = self.neck_3d(volume)  # only one
 

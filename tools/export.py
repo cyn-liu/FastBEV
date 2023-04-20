@@ -187,7 +187,6 @@ def main():
 
     onnx_name = Path(cfg.load_from).parent.name + '—' + Path(cfg.load_from).stem + '_' + __date() + '.onnx'
     onnx_path = os.path.join(cfg.work_dir, onnx_name)
-
     cfg.model.type = cfg.model.type + 'TRT'
 
     if 'runner_type' not in cfg:
@@ -198,27 +197,35 @@ def main():
     model = runner.build_model(cfg.model)
     load_checkpoint(model, cfg.load_from)
 
-    DEPLOY = True # False True
+    DEPLOY = False # False True
     img = test(input_size, use_fixed_value=False, fixed_value=2.2)
+
+    # point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
+    # bev_size = [200, 200]
+    # num_points_in_pillar = 6
+
+    point_cloud_range = cfg["point_cloud_range"]
+    bev_size = cfg["bev_size"]
+    num_points_in_pillar = cfg["num_points_in_pillar"]
+    n_voxels = bev_size + [num_points_in_pillar]
+
+    voxel_size = [(point_cloud_range[3] - point_cloud_range[0]) / bev_size[0],
+                       (point_cloud_range[4] - point_cloud_range[1]) / bev_size[1],
+                       (point_cloud_range[5] - point_cloud_range[2]) / num_points_in_pillar]
+    origin =[(point_cloud_range[i] + point_cloud_range[i+3])/2 for i in range(3) ]
+
+    projection = get_projection("nuscenes")## roadside nuscenes
 
     default_cfg = dict(
         DEPLOY=DEPLOY,
         input_size=cfg.img_input_final_dim,
         params = dict(
-            n_voxels=[200, 200, 4],
-            voxel_size = [0.5, 0.5, 1.25],
-            origin = [50, 0, -2.5],
-            projection=[71.53172, -52.54671, -35.75775, 15.59389,
-                        20.39917, 2.73410, -69.10509, 46.72696,
-                        0.90386, 0.02073, -0.42733, 0.15092,
+            n_voxels=n_voxels,
+            voxel_size = voxel_size,
+            origin = origin,
+            projection=projection,
 
-                        76.97623, 54.60408, -22.41302, -110.90480,
-                        7.00734, 33.80035, -63.89751, 103.67227,
-                        0.32260, 0.91960, -0.22425, 0.14254,
-
-                        -20.43310, -94.84116, -6.95973, 101.15097,
-                        10.08508, -37.30505, -61.20711, 80.73156,
-                        0.37370, -0.91614, -0.14501, -0.43871]),
+        ),
         lidar2cam=[[
          [[ 0.0049, -0.9993, -0.0381,  0.0681],
           [-0.4278,  0.0323, -0.9033,  0.7340],
@@ -296,11 +303,20 @@ def test(input_size, use_fixed_value=False, fixed_value=2.2):
             pad = (pad_data, pad_color)
             augment = dict(resize_dims=resize_dims, crop=crop, flip=False, rotate=0., pad=pad)
             return augment
-
+        # # # ROADSIDE
+        # img_name_list = [
+        #     '/data/fuyu/yolo/roadside_yolo/images/2022-05-09-11-45-03_000346_front.png',
+        #     '/data/fuyu/yolo/roadside_yolo/images/2022-05-09-11-45-03_000346_left.png',
+        #     '/data/fuyu/yolo/roadside_yolo/images/2022-05-09-11-45-03_000346_right.png']
+        # Nuscenes
         img_name_list = [
-            '/data/fuyu/yolo/roadside_yolo/images/2022-05-09-11-45-03_000346_front.png',
-            '/data/fuyu/yolo/roadside_yolo/images/2022-05-09-11-45-03_000346_left.png',
-            '/data/fuyu/yolo/roadside_yolo/images/2022-05-09-11-45-03_000346_right.png']
+            "/data/fuyu/dataset/nuscenes/samples/CAM_FRONT/n015-2018-08-02-17-16-37+0800__CAM_FRONT__1533201471912460.jpg",
+            "/data/fuyu/dataset/nuscenes/samples/CAM_FRONT_RIGHT/n015-2018-08-02-17-16-37+0800__CAM_FRONT_RIGHT__1533201471920339.jpg",
+            "/data/fuyu/dataset/nuscenes/samples/CAM_FRONT_LEFT/n015-2018-08-02-17-16-37+0800__CAM_FRONT_LEFT__1533201471904844.jpg",
+            "/data/fuyu/dataset/nuscenes/samples/CAM_BACK/n015-2018-08-02-17-16-37+0800__CAM_BACK__1533201471937525.jpg",
+            "/data/fuyu/dataset/nuscenes/samples/CAM_BACK_LEFT/n015-2018-08-02-17-16-37+0800__CAM_BACK_LEFT__1533201471947423.jpg",
+            "/data/fuyu/dataset/nuscenes/samples/CAM_BACK_RIGHT/n015-2018-08-02-17-16-37+0800__CAM_BACK_RIGHT__1533201471927893.jpg"]
+
         img_list = []
         for img_name in img_name_list:
             single_img = imread(img_name)  # h w c (bgr)
@@ -353,6 +369,57 @@ def crop_img(img, crop, pad_fill=0):
         wsize = img.shape[1] - dw
     resized_img[sh: sh + hsize, sw: sw + wsize] = img[dh: dh + hsize, dw: dw + wsize]
     return resized_img
+
+def get_projection(name ):
+    projection = dict(
+    nuscenes =
+    [   138.9468,     90.3058,      2.6294,    -66.8441,
+          0.7966,     39.1664,   -138.5949,    -73.1480,
+         -0.0040,      0.9998,      0.0187,     -0.7629,
+          0.0000,      0.0000,      0.0000,      1.0000,
+
+       150.6518,    -66.5482,     -3.1942,    -34.7508,
+         29.3922,     23.7879,   -138.4704,    -74.5002,
+          0.8339,      0.5520,      0.0047,     -0.7533,
+          0.0000,      0.0000,      0.0000,      1.0000,
+
+         5.6111,    166.7817,      4.0304,    -94.9646,
+        -28.5383,     23.5625,   -139.5369,    -72.5685,
+         -0.8198,      0.5725,      0.0116,     -0.7393,
+          0.0000,      0.0000,      0.0000,      1.0000,
+
+       -89.4211,    -90.8019,     -1.5625,    -83.1825,
+          0.7162,    -34.8258,    -89.2756,    -56.8892,
+         -0.0045,     -1.0000,     -0.0076,     -0.9097,
+          0.0000,      0.0000,      0.0000,      1.0000,
+
+      -126.4499,    103.5008,      0.8873,    -71.1427,
+        -32.0534,     -7.0667,   -139.2144,    -49.5560,
+         -0.9482,     -0.3163,     -0.0293,     -0.4340,
+          0.0000,      0.0000,      0.0000,      1.0000,
+
+        33.5314,   -160.9706,     -6.6550,     -5.2437,
+         34.4051,     -7.8389,   -139.1622,    -53.9746,
+          0.9342,     -0.3562,     -0.0194,     -0.4277,
+          0.0000,      0.0000,      0.0000,      1.0000],
+      roadside=
+      [71.53172, -52.54671, -35.75775, 15.59389,
+                    20.39917, 2.73410, -69.10509, 46.72696,
+                    0.90386, 0.02073, -0.42733, 0.15092,
+
+                    76.97623, 54.60408, -22.41302, -110.90480,
+                    7.00734, 33.80035, -63.89751, 103.67227,
+                    0.32260, 0.91960, -0.22425, 0.14254,
+
+                    -20.43310, -94.84116, -6.95973, 101.15097,
+                    10.08508, -37.30505, -61.20711, 80.73156,
+                    0.37370, -0.91614, -0.14501, -0.43871]
+
+    )
+
+
+    return projection[name]
+
 
 
 if __name__ == '__main__':

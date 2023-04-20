@@ -20,11 +20,11 @@ __all__ = ['MyNuscenesDataset']
 @DATASETS.register_module()
 class MyNuscenesDataset(NuScenesDataset):
 
-    def __init__(self,pred_score_thr=0.4, show_score=True, **kwargs) -> None:
+    def __init__(self,pred_score_thr=0.4, show_score=True, fps=5,**kwargs) -> None:
         super().__init__( **kwargs)
         self.pred_score_thr = pred_score_thr
         self.order_input = True
-        self.fps = 5
+        self.fps = fps
         self.show_score = show_score
         self.save_img = False
 
@@ -85,8 +85,9 @@ class MyNuscenesDataset(NuScenesDataset):
 
             img_gt_list = []
             img_pred_list = []
-            
+            # print("################################")
             for img, img_info in info['images'].items():
+                # print(info['images'][img]['img_path'])
                 fildname_cur = Path(info['images'][img]['img_path']).stem
                 img_pred = imread(img_info['img_path'])
                 img_gt = imread(img_info['img_path'])
@@ -125,14 +126,14 @@ class MyNuscenesDataset(NuScenesDataset):
                 img_gt_list.append(mmcv.imrescale(img_gt, 0.5))
                 img_pred_list.append(mmcv.imrescale(img_pred, 0.5))
 
-            tmp_img_up_pred = np.concatenate(sort_list(img_pred_list[0:3], sort=[1, 0, 2]), axis=1)
+            tmp_img_up_pred = np.concatenate(sort_list(img_pred_list[0:3], sort=[2, 0, 1]), axis=1)
             all_img_pred.append(tmp_img_up_pred)
-            tmp_img_up_gt = np.concatenate(sort_list(img_gt_list[0:3], sort=[1, 0, 2]), axis=1)
+            tmp_img_up_gt = np.concatenate(sort_list(img_gt_list[0:3], sort=[2, 0, 1]), axis=1)
             all_img_gt.append(tmp_img_up_gt)
 
-            tmp_img_up_pred = np.concatenate(sort_list(img_pred_list[3:], sort=[1, 0, 2]), axis=1)
+            tmp_img_up_pred = np.concatenate(sort_list(img_pred_list[3:], sort=[1, 0, 2],flip=True), axis=1)
             all_img_pred_bottom.append(tmp_img_up_pred)
-            tmp_img_up_gt = np.concatenate(sort_list(img_gt_list[3:], sort=[1, 0, 2]), axis=1)
+            tmp_img_up_gt = np.concatenate(sort_list(img_gt_list[3:], sort=[1, 0, 2],flip=True), axis=1)
             all_img_gt_bottom.append(tmp_img_up_gt)
 
             # TODO
@@ -182,7 +183,17 @@ class MyNuscenesDataset(NuScenesDataset):
         logger.info(f"Finished saving video to {video_out_dir}")
 
 def puttext(img, name, loc=(10, 60), font=cv2.FONT_HERSHEY_DUPLEX ,color=(248, 202, 105)):
-    cv2.putText(img, name, loc, font, 2, color, 2)
+    half_idx = len(name)//2
+    cv2.putText(img, name[:half_idx], loc, font, 2, color, 2)
+    cv2.putText(img, name[half_idx:], (10,120), font, 2, color, 2)
+
+def limit_large(input_):
+    x,y = tuple(input_)
+    if abs(x) >10000:
+        x = 10000 * (abs(x)//x)
+    if abs(y) >10000:
+        y = 10000 * (abs(y)//y)
+    return tuple([x,y])
 
 def draw_corners(img, corners, color, projection, text_dict=None):
     corners_3d_4 = np.concatenate((corners, np.ones((8, 1))), axis=1)
@@ -205,8 +216,8 @@ def draw_corners(img, corners, color, projection, text_dict=None):
         if z_mask[i] and z_mask[j]:
             img = cv2.line(
                 img=img,
-                pt1=tuple(corners_2d[i]),
-                pt2=tuple(corners_2d[j]),
+                pt1=limit_large(corners_2d[i]),
+                pt2=limit_large(corners_2d[j]),
                 color=color,
                 thickness=2,
                 lineType=cv2.LINE_AA)
@@ -247,10 +258,12 @@ def get_colors():
     return colors
 
 
-def sort_list(_list, sort):
+def sort_list(_list, sort,flip=False):
     assert len(_list) == len(sort)
     new_list = []
     for s in sort:
+        if flip:
+            _list[s] = np.flip(_list[s],axis=1)
         new_list.append(_list[s])
     return new_list
 

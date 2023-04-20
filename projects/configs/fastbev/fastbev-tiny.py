@@ -2,27 +2,31 @@
 _base_ = ['mmdet3d::_base_/default_runtime.py',
           'mmdet3d::_base_/schedules/cyclic-20e.py']
 
-batch_size = 44
+batch_size = 42
 test_batch_size = 1
-epochs = 50
+epochs = 30
 num_workers = 4
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
 bev_size = [200, 200]
 num_points_in_pillar = 6
 
 checkpoint_interval = 1
-log_interval = 10
-pred_score_thr = 0.4
-show_pred_score = True
-lr = 0.0002
+log_interval =50
+lr = 0.0001
 
 n_cams = 6
 img_input_final_dim = (256, 704)
-
-# load_from = './work_dirs/fastbev-tiny_train_20230419-1302/epoch_3.pth'
-load_from = None
+load_from = 'work_dirs/fastbev-tiny_train_half_res_aug_20230420-1528/epoch_3.pth'
+# load_from = None
 resume = None
 
+save2cfg_num = 10
+
+pred_score_thr = 0.7
+fps=8
+show_pred_score = True
+vis_num = 10
+vis_in_test = True
 
 class_names=[ 'car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle',
             'motorcycle', 'pedestrian', 'traffic_cone', 'barrier']
@@ -46,7 +50,7 @@ work_dir_postfix_name = "half_res_aug"
 
 suffix = 'nuscenes_aug'
 save2cfg = dict(
-    plot_examples=10,
+    plot_examples=save2cfg_num,
     plot_range=[*point_cloud_range[:2], *point_cloud_range[3:5]],
     draw_gt=True, draw_pred=True, pred_score_thr=pred_score_thr,
     transpose=True,
@@ -202,7 +206,7 @@ ida_aug_conf = dict(
     # train-aug
     final_size=img_input_final_dim,
     resize_range=(-0.06, 0.11),
-    crop_range=(-0.05, 0.05),
+    # crop_range=(-0.05, 0.05),
     rot_range=(-3.14159264 / 18, 3.14159264 / 18),
     rand_flip=True,
     flip_ratio=0.5,
@@ -254,6 +258,7 @@ train_pipeline = [
          process_fields=['img', 'cam2img', 'lidar2cam', 'filename']),
     dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='ObjectNameFilter', classes=class_names),
+    dict(type='RandomAugBEV', data_config=pts_aug_conf),
     dict(type='AddSupplementInfo'),
     # dict(type='PointCloudImgVis', cfg=save2img_pipline_cfg),
     dict(type='CustomPack3DDetInputs', keys=['img', 'gt_bboxes_3d', 'gt_labels_3d'])
@@ -311,6 +316,7 @@ test_dataloader = dict(
         modality=input_modality,
         data_prefix=data_prefix,
         pred_score_thr=pred_score_thr,
+        fps=fps,
         show_score=show_pred_score,
         test_mode=True,
         load_eval_anns=True,
@@ -375,7 +381,7 @@ train_cfg = dict(_delete_=True, type='EpochBasedTrainLoop', max_epochs=epochs, v
 val_cfg = None
 # test_cfg = dict(type='TestLoop')
 
-test_cfg = dict(type='CustomVisLoop', iter_nums=20,vis=True)
+test_cfg = dict(type='CustomVisLoop', iter_nums=vis_num,vis=vis_in_test)
 
 
 default_hooks = dict(
