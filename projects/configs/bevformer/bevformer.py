@@ -31,13 +31,15 @@ work_dir_postfix_name = ""
 
 data_root = '/home/fuyu/zhangbin/datasets/ms-mini/'
 
+def __date():
+    import datetime
+    return datetime.datetime.now().strftime('%Y%m%d-%H%M')
+
 work_dir_postfix = "_" + work_dir_postfix_name + '_' + __date()
 
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
 
-def __date():
-    import datetime
-    return datetime.datetime.now().strftime('%Y%m%d-%H%M')
+
 
 plugin = True
 plugin_dir = 'projects/mmdet3d_plugin/'
