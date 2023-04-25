@@ -2,9 +2,10 @@
 _base_ = ['mmdet3d::_base_/default_runtime.py',
           'mmdet3d::_base_/schedules/cyclic-20e.py']
 
-batch_size = 42
+batch_size = 20
 test_batch_size = 1
 epochs = 30
+AMP_FP16_TRAIN = False  #TODO: 混合精度仅在nuscenes上有点bug，训了几个epoch后越界了貌似。待调试
 num_workers = 4
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
 bev_size = [200, 200]
@@ -16,7 +17,7 @@ lr = 0.0001
 
 n_cams = 6
 img_input_final_dim = (256, 704)
-load_from = 'work_dirs/fastbev-tiny_train_half_res_aug_20230420-1528/epoch_3.pth'
+load_from = 'work_dirs/fastbev-tiny_train_half_res_aug_20230420-1841/epoch_9.pth'
 # load_from = None
 resume = None
 
@@ -206,7 +207,7 @@ ida_aug_conf = dict(
     # train-aug
     final_size=img_input_final_dim,
     resize_range=(-0.06, 0.11),
-    # crop_range=(-0.05, 0.05),
+    crop_range=(-0.05, 0.05),
     rot_range=(-3.14159264 / 18, 3.14159264 / 18),
     rand_flip=True,
     flip_ratio=0.5,
@@ -334,13 +335,21 @@ test_evaluator = dict(
 vis_backends = [dict(type='TensorboardVisBackend')]
 visualizer = dict(type='Det3DLocalVisualizer', vis_backends=vis_backends, name='visualizer')
 
-optim_wrapper = dict(
-    type='AmpOptimWrapper',
-    dtype='float16',
-    optimizer=dict(type='AdamW', lr=lr, weight_decay=0.01,),
-    paramwise_cfg=dict(
-        custom_keys={'backbone': dict(lr_mult=0.1, decay_mult=1.0)}),
-    clip_grad=dict(max_norm=35, norm_type=2))
+if AMP_FP16_TRAIN:
+    optim_wrapper = dict(
+        type='AmpOptimWrapper',
+        dtype='float16',
+        optimizer=dict(type='AdamW', lr=lr, weight_decay=0.01, ),
+        paramwise_cfg=dict(
+            custom_keys={'backbone': dict(lr_mult=0.1, decay_mult=1.0)}),
+        clip_grad=dict(max_norm=35, norm_type=2))
+else:
+    optim_wrapper = dict(
+        type='OptimWrapper',
+        optimizer=dict(type='AdamW', lr=lr, weight_decay=0.01, ),
+        paramwise_cfg=dict(
+            custom_keys={'backbone': dict(lr_mult=0.1, decay_mult=1.0)}),
+        clip_grad=dict(max_norm=35, norm_type=2))
 
 param_scheduler = [
     dict(
